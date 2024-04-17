@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1340
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Interpolation_algorithm", "Interpolation_algorithm\Interpolation_algorithm.vcxproj", "{CB797D38-A427-438F-BBFC-41A89AAD15A5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Debug|x64.ActiveCfg = Debug|x64
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Debug|x64.Build.0 = Debug|x64
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Debug|x86.ActiveCfg = Debug|Win32
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Debug|x86.Build.0 = Debug|Win32
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Release|x64.ActiveCfg = Release|x64
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Release|x64.Build.0 = Release|x64
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Release|x86.ActiveCfg = Release|Win32
+		{CB797D38-A427-438F-BBFC-41A89AAD15A5}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FBDF33A0-924C-458A-8BD4-F60EF63FBF44}
+	EndGlobalSection
+EndGlobal
