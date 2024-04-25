@@ -1,7 +1,6 @@
 #include "cinterpolation.h"
 #include "ui_cinterpolation.h"
 
-#define POLY_COEFF_SIZE 4
 #define MIN(AA,BB) ((AA) > (BB)) ? (BB) : (AA)
 
 CInterpolation::CInterpolation(QWidget *parent)
@@ -30,13 +29,19 @@ void CInterpolation::Init()
 
 void CInterpolation::InitMember()
 {
+    std::vector<double> GraphKey_Graph0_nearest_neighbor;
+    std::vector<double> GraphData_Graph0_nearest_neighbor;
+    std::vector<double> GraphKey_Graph0_linear;
+    std::vector<double> GraphData_Graph0_linear;
     std::vector<double> GraphKey_Graph0_cubic_spline;
     std::vector<double> GraphData_Graph0_cubic_spline;
     std::vector<double> GraphKey_Graph0_monotonic_cubic_Hermite_spline;
     std::vector<double> GraphData_Graph0_monotonic_cubic_Hermite_spline;
 
-    std::vector<double> Polynomial_Coefficients_cubic_spline[POLY_COEFF_SIZE]; // 0:상수, 1:1차계수, 2:2차계수, 3:3차계수
-    std::vector<double> Polynomial_Coefficients_monotonic_cubic_Hermite_spline[POLY_COEFF_SIZE]; // 0:h00계수, 1:h10계수, 2:h01계수, 3:h11계수
+    std::vector<double> Polynomial_Coefficients_nearest_neighbor[1]; // 0:y값
+    std::vector<double> Polynomial_Coefficients_linear[2]; // 0:기울기, 1:상수
+    std::vector<double> Polynomial_Coefficients_cubic_spline[4]; // 0:상수, 1:1차계수, 2:2차계수, 3:3차계수
+    std::vector<double> Polynomial_Coefficients_monotonic_cubic_Hermite_spline[4]; // 0:h00계수, 1:h10계수, 2:h01계수, 3:h11계수
 
 //    double Test[101] =
 //    {
@@ -69,23 +74,33 @@ void CInterpolation::InitMember()
 #endif
 
 #if 1
+
+    nearest_neighbor_polynomial_coefficients(&m_Table_X, &m_Table_Y, Polynomial_Coefficients_nearest_neighbor);
+    linear_polynomial_coefficients(&m_Table_X, &m_Table_Y, Polynomial_Coefficients_linear);
     cubic_spline_polynomial_coefficients(&m_Table_X, &m_Table_Y, Polynomial_Coefficients_cubic_spline);
     monotonic_cubic_Hermite_spline_polynomial_coefficients(m_Table_X, m_Table_Y, Polynomial_Coefficients_monotonic_cubic_Hermite_spline);
 
     for(double x = 0; x <= 100; x += 0.1)
     {
+        GraphKey_Graph0_nearest_neighbor.push_back(x);
+        GraphData_Graph0_nearest_neighbor.push_back(cal_nearest_neighbor(x, &m_Table_X, Polynomial_Coefficients_nearest_neighbor));
+        GraphKey_Graph0_linear.push_back(x);
+        GraphData_Graph0_linear.push_back(cal_linear(x, &m_Table_X, Polynomial_Coefficients_linear));
         GraphKey_Graph0_cubic_spline.push_back(x);
-        GraphData_Graph0_cubic_spline.push_back(cal_cubic_spline(x, Polynomial_Coefficients_cubic_spline));
+        GraphData_Graph0_cubic_spline.push_back(cal_cubic_spline(x, &m_Table_X, Polynomial_Coefficients_cubic_spline));
         GraphKey_Graph0_monotonic_cubic_Hermite_spline.push_back(x);
-        GraphData_Graph0_monotonic_cubic_Hermite_spline.push_back(cal_monotonic_cubic_Hermite_spline(x, Polynomial_Coefficients_monotonic_cubic_Hermite_spline));
+        GraphData_Graph0_monotonic_cubic_Hermite_spline.push_back(cal_monotonic_cubic_Hermite_spline(x, &m_Table_X, Polynomial_Coefficients_monotonic_cubic_Hermite_spline));
     }
 #endif
 
+    m_GraphKey_Graph0_nearest_neighbor = QVector<double>(GraphKey_Graph0_nearest_neighbor.begin(), GraphKey_Graph0_nearest_neighbor.end());
+    m_GraphData_Graph0_nearest_neighbor = QVector<double>(GraphData_Graph0_nearest_neighbor.begin(), GraphData_Graph0_nearest_neighbor.end());
+    m_GraphKey_Graph0_linear = QVector<double>(GraphKey_Graph0_linear.begin(), GraphKey_Graph0_linear.end());
+    m_GraphData_Graph0_linear = QVector<double>(GraphData_Graph0_linear.begin(), GraphData_Graph0_linear.end());
     m_GraphKey_Graph0_cubic_spline = QVector<double>(GraphKey_Graph0_cubic_spline.begin(), GraphKey_Graph0_cubic_spline.end());
     m_GraphData_Graph0_cubic_spline = QVector<double>(GraphData_Graph0_cubic_spline.begin(), GraphData_Graph0_cubic_spline.end());
     m_GraphKey_Graph0_monotonic_cubic_Hermite_spline = QVector<double>(GraphKey_Graph0_monotonic_cubic_Hermite_spline.begin(), GraphKey_Graph0_monotonic_cubic_Hermite_spline.end());
     m_GraphData_Graph0_monotonic_cubic_Hermite_spline = QVector<double>(GraphData_Graph0_monotonic_cubic_Hermite_spline.begin(), GraphData_Graph0_monotonic_cubic_Hermite_spline.end());
-
 }
 
 void CInterpolation::InitGraph()
@@ -112,14 +127,24 @@ void CInterpolation::InitGraph()
     ui->qcustomplotwidget_Graph0->xAxis->setTickLabelColor(Qt::white);
     ui->qcustomplotwidget_Graph0->addGraph(ui->qcustomplotwidget_Graph0->xAxis, ui->qcustomplotwidget_Graph0->yAxis);
     ui->qcustomplotwidget_Graph0->addGraph(ui->qcustomplotwidget_Graph0->xAxis, ui->qcustomplotwidget_Graph0->yAxis);
-    ui->qcustomplotwidget_Graph0->graph(0)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 5)));
-    ui->qcustomplotwidget_Graph0->graph(0)->setPen(QColor(255, 255, 0));
-    ui->qcustomplotwidget_Graph0->graph(0)->setName(QString("cubic_spline"));
+    ui->qcustomplotwidget_Graph0->addGraph(ui->qcustomplotwidget_Graph0->xAxis, ui->qcustomplotwidget_Graph0->yAxis);
+    ui->qcustomplotwidget_Graph0->addGraph(ui->qcustomplotwidget_Graph0->xAxis, ui->qcustomplotwidget_Graph0->yAxis);
+    ui->qcustomplotwidget_Graph0->graph(0)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 1)));
+    ui->qcustomplotwidget_Graph0->graph(0)->setPen(QColor(255, 0, 0));
+    ui->qcustomplotwidget_Graph0->graph(0)->setName(QString("nearest_neighbor"));
     ui->qcustomplotwidget_Graph0->graph(0)->setSelectable(QCP::SelectionType::stNone);
-    ui->qcustomplotwidget_Graph0->graph(1)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 5)));
-    ui->qcustomplotwidget_Graph0->graph(1)->setPen(QColor(0, 255, 255));
-    ui->qcustomplotwidget_Graph0->graph(1)->setName(QString("monotonic_cubic_Hermite_spline"));
+    ui->qcustomplotwidget_Graph0->graph(1)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 1)));
+    ui->qcustomplotwidget_Graph0->graph(1)->setPen(QColor(0, 255, 0));
+    ui->qcustomplotwidget_Graph0->graph(1)->setName(QString("linear"));
     ui->qcustomplotwidget_Graph0->graph(1)->setSelectable(QCP::SelectionType::stNone);
+    ui->qcustomplotwidget_Graph0->graph(2)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 1)));
+    ui->qcustomplotwidget_Graph0->graph(2)->setPen(QColor(255, 255, 0));
+    ui->qcustomplotwidget_Graph0->graph(2)->setName(QString("cubic_spline"));
+    ui->qcustomplotwidget_Graph0->graph(2)->setSelectable(QCP::SelectionType::stNone);
+    ui->qcustomplotwidget_Graph0->graph(3)->setScatterStyle((QCPScatterStyle(QCPScatterStyle::ssCircle, 1)));
+    ui->qcustomplotwidget_Graph0->graph(3)->setPen(QColor(0, 255, 255));
+    ui->qcustomplotwidget_Graph0->graph(3)->setName(QString("monotonic_cubic_Hermite_spline"));
+    ui->qcustomplotwidget_Graph0->graph(3)->setSelectable(QCP::SelectionType::stNone);
     ui->qcustomplotwidget_Graph0->yAxis->setLabel("y");
     ui->qcustomplotwidget_Graph0->yAxis->setLabelColor(Qt::white);
     ui->qcustomplotwidget_Graph0->yAxis->setBasePen(QPen(Qt::white));
@@ -134,8 +159,10 @@ void CInterpolation::InitGraph()
 
 void CInterpolation::UpdateGraph()
 {
-    ui->qcustomplotwidget_Graph0->graph(0)->setData(m_GraphKey_Graph0_cubic_spline, m_GraphData_Graph0_cubic_spline);
-    ui->qcustomplotwidget_Graph0->graph(1)->setData(m_GraphKey_Graph0_monotonic_cubic_Hermite_spline, m_GraphData_Graph0_monotonic_cubic_Hermite_spline);
+    ui->qcustomplotwidget_Graph0->graph(0)->setData(m_GraphKey_Graph0_nearest_neighbor, m_GraphData_Graph0_nearest_neighbor);
+    ui->qcustomplotwidget_Graph0->graph(1)->setData(m_GraphKey_Graph0_linear, m_GraphData_Graph0_linear);
+    ui->qcustomplotwidget_Graph0->graph(2)->setData(m_GraphKey_Graph0_cubic_spline, m_GraphData_Graph0_cubic_spline);
+    ui->qcustomplotwidget_Graph0->graph(3)->setData(m_GraphKey_Graph0_monotonic_cubic_Hermite_spline, m_GraphData_Graph0_monotonic_cubic_Hermite_spline);
 
     ui->qcustomplotwidget_Graph0->xAxis->rescale();
     ui->qcustomplotwidget_Graph0->yAxis->rescale();
@@ -143,6 +170,82 @@ void CInterpolation::UpdateGraph()
     ui->qcustomplotwidget_Graph0->replot();
 }
 
+// Nearest neighbor
+bool CInterpolation::nearest_neighbor_polynomial_coefficients(std::vector<double>* x_series, std::vector<double>* y_series, std::vector<double>* poly_coeff)
+{
+    int n = MIN((int)x_series->size()-1, (int)y_series->size()-1);
+
+    int i = 0;
+
+    for(i=0; i<=n; i++){
+        poly_coeff[0].push_back((*y_series)[i]);
+    }
+
+    return true;
+}
+
+double CInterpolation::cal_nearest_neighbor(double x, std::vector<double>* x_series, std::vector<double>* poly_coeff)
+{
+    double ret = 0;
+    int i = 0;
+    int arrlen = (int)poly_coeff->size();
+
+    for(i = 0; i < arrlen; i++)
+    {
+        if(x <= (*x_series)[i + 1])
+        {
+            ret = (*x_series)[i + 1] - x > x - (*x_series)[i] ? poly_coeff[0][i] : poly_coeff[0][i+1>=arrlen?i:i+1];
+            break;
+        }
+    }
+
+    return ret;
+}
+
+// Linear
+bool CInterpolation::linear_polynomial_coefficients(std::vector<double>* x_series, std::vector<double>* y_series, std::vector<double>* poly_coeff)
+{
+    int n = MIN((int)x_series->size()-1, (int)y_series->size()-1);
+
+    double *m = new double[n+1];
+    double *k = new double[n+1];
+    int i = 0;
+
+    for(i=0; i<n; i++){
+        m[i] = ((*y_series)[i+1]-(*y_series)[i])/((*x_series)[i+1]-(*x_series)[i]);
+        k[i] = (*y_series)[i]-m[i]*(*x_series)[i];
+    }
+
+    for(i=0; i<n; i++){
+        poly_coeff[0].push_back(m[i]);
+        poly_coeff[1].push_back(k[i]);
+    }
+
+    delete[] m;
+    delete[] k;
+
+    return true;
+}
+
+double CInterpolation::cal_linear(double x, std::vector<double>* x_series, std::vector<double>* poly_coeff)
+{
+    double ret = 0;
+    int i = 0;
+    int arrlen = (int)poly_coeff->size();
+
+    for(i = 0; i < arrlen; i++)
+    {
+        if(x <= (*x_series)[i + 1])
+        {
+            ret = poly_coeff[0][i]*x+poly_coeff[1][i];
+            break;
+        }
+    }
+
+    return ret;
+}
+
+// Cubic spline
 bool CInterpolation::cubic_spline(std::vector<double>* x_series, std::vector<double>* y_series, std::vector<double> *destX, std::vector<double>* destY)
 {
     int n = MIN((int)x_series->size()-1, (int)y_series->size()-1);
@@ -388,7 +491,7 @@ bool CInterpolation::monotonic_cubic_Hermite_spline_polynomial_coefficients(cons
     return true;
 }
 
-double CInterpolation::cal_cubic_spline(double x, std::vector<double>* poly_coeff)
+double CInterpolation::cal_cubic_spline(double x, std::vector<double>* x_series, std::vector<double>* poly_coeff)
 {
     double ret = 0;
     int i = 0;
@@ -397,9 +500,9 @@ double CInterpolation::cal_cubic_spline(double x, std::vector<double>* poly_coef
 
     for(i = 0; i < arrlen; i++)
     {
-        if(x <= m_Table_X[i + 1])
+        if(x <= (*x_series)[i + 1])
         {
-            x_offset = x - m_Table_X[i];
+            x_offset = x - (*x_series)[i];
             ret = poly_coeff[0][i] + poly_coeff[1][i]*x_offset + poly_coeff[2][i]*x_offset*x_offset + poly_coeff[3][i]*x_offset*x_offset*x_offset;
             break;
         }
@@ -408,7 +511,7 @@ double CInterpolation::cal_cubic_spline(double x, std::vector<double>* poly_coef
     return ret;
 }
 
-double CInterpolation::cal_monotonic_cubic_Hermite_spline(double x, std::vector<double>* poly_coeff)
+double CInterpolation::cal_monotonic_cubic_Hermite_spline(double x, std::vector<double>* x_series, std::vector<double>* poly_coeff)
 {
     double ret = 0;
     int i = 0;
@@ -420,10 +523,10 @@ double CInterpolation::cal_monotonic_cubic_Hermite_spline(double x, std::vector<
 
     for(i = 0; i < arrlen; i++)
     {
-        if(x <= m_Table_X[i + 1])
+        if(x <= (*x_series)[i + 1])
         {
-            cur_x = (double)((int)(0.5 + m_Table_X[i]));
-            next_x = (double)((int)(m_Table_X[i+1]));
+            cur_x = (double)((int)(0.5 + (*x_series)[i]));
+            next_x = (double)((int)((*x_series)[i+1]));
             h = next_x - cur_x;
             t = (x - cur_x) / h;
             ret = poly_coeff[0][i]*h00(t) + poly_coeff[1][i]*h10(t) + poly_coeff[2][i]*h01(t) + poly_coeff[3][i]*h11(t);
